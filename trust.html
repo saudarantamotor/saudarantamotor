@@ -1,0 +1,87 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAUDARANTA MOTOR-REPORT</title>
+<style>
+*{box-sizing:border-box;font-family:Arial}body{margin:0;background:#f1f5f9;padding:12px}
+.card{background:#fff;padding:14px;border-radius:12px;margin-bottom:12px}
+label{font-size:13px;font-weight:bold;display:block;margin-top:10px}
+input{width:100%;padding:10px;margin-top:4px;border:1px solid #cbd5e1;border-radius:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{padding:10px;border:none;border-radius:8px;font-weight:bold;cursor:pointer}
+.foto-box{border:2px dashed #cbd5e1;border-radius:10px;padding:10px;background:#f8fafc}
+.foto-box img{width:100%;border-radius:8px;margin-top:8px;display:none;max-height:200px;object-fit:cover}
+.stat{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.stat div{background:#0f172a;color:#fff;padding:12px;border-radius:10px;text-align:center}
+table{width:100%;border-collapse:collapse;font-size:12px;display:block;overflow-x:auto}
+th,td{border:1px solid #e2e8f0;padding:8px;white-space:nowrap}th{background:#0f172a;color:#fff}
+img.thumb{width:60px;height:60px;object-fit:cover;border-radius:6px}
+.perbaikanItem{display:flex;gap:6px;margin-top:6px}
+</style>
+</head>
+<body>
+<h1 style="text-align:center">🏍️ SAUDARANTA MOTOR-REPORT</h1>
+<p style="text-align:center;font-size:12px;color:#64748b">Stok & Keuangan - Medan | Foto Auto-Kompres 80KB</p>
+<div class="stat"><div>Total Unit<b id="statUnit">0</b></div><div>Total Modal<b id="statModal">Rp 0</b></div><div>Total Laba<b id="statLaba">Rp 0</b></div></div>
+
+<div class="card">
+<h3>➕ Tambah / Edit Unit</h3>
+<input type="hidden" id="editId">
+<label>Unit / NOPOL *</label><input id="nopol" placeholder="Beat 2020 - BK 1234 AB">
+<label>Tanggal Beli</label><input type="date" id="tglBeli">
+<h3>📸 Foto - Auto Kompres 80KB</h3>
+<div class="grid" id="fotoArea"></div>
+<div class="grid">
+<div><label>Nama Penjual</label><input id="namaPenjual"></div>
+<div><label>HP Penjual</label><input id="hpPenjual"></div>
+<div><label>Harga Beli</label><input type="number" id="hargaBeli" oninput="hitung()"></div>
+<div><label>Harga Jual</label><input type="number" id="hargaJual" oninput="hitung()"></div>
+</div>
+<label>Perbaikan</label><div id="perbaikanList"><div class="perbaikanItem"><input class="perbaikanNama" placeholder="Ganti Oli" style="flex:2"><input type="number" class="perbaikanBiaya" placeholder="Biaya" oninput="hitung()" style="flex:1"><button onclick="this.parentElement.remove();hitung()" style="background:#ef4444;color:#fff">-</button></div></div>
+<button onclick="tambahPerbaikan()" style="background:#2563eb;color:#fff;width:100%;margin-top:8px">+ Tambah Perbaikan</button>
+<div style="display:flex;gap:8px;margin-top:10px"><b>Total Perbaikan: <span id="txtPerbaikan">Rp 0</span></b><b>Total Modal: <span id="txtModal">Rp 0</span></b><b>Laba: <span id="txtLaba">Rp 0</span></b></div>
+<button onclick="simpan()" style="background:#16a34a;color:#fff;width:100%;margin-top:14px;font-size:16px">💾 SIMPAN DATA</button>
+<button onclick="resetForm()" style="background:#e2e8f0;width:100%;margin-top:6px">Reset Form</button>
+</div>
+
+<div class="card">
+<input id="cari" placeholder="Cari nopol / nama..." oninput="tampil()">
+<div style="display:flex;gap:6px;margin:10px 0"><button onclick="exportExcel()" style="background:#16a34a;color:#fff;flex:1">📊 Excel</button><button onclick="window.print()" style="background:#0f172a;color:#fff;flex:1">🖨️ PDF / Print</button><button onclick="hapusSemua()" style="background:#ef4444;color:#fff;flex:1">Hapus Semua</button></div>
+<table><thead><tr><th>Foto</th><th>Unit</th><th>Beli</th><th>Perbaikan</th><th>Modal</th><th>Jual</th><th>Laba</th><th>Aksi</th></tr></thead><tbody id="tbody"></tbody></table>
+</div>
+
+<script>
+let fotoData={unit:'',rangka:'',mesin:'',ktp:''};
+let jenisFoto=[['unit','1. Foto Unit'],['rangka','2. No. Rangka'],['mesin','3. No. Mesin'],['ktp','4. KTP Penjual']];
+document.getElementById('fotoArea').innerHTML=jenisFoto.map(([k,l])=>`<div class="foto-box"><label>${l}</label><div style="display:flex;gap:6px"><button onclick="document.getElementById('cam_${k}').click()" style="background:#2563eb;color:#fff;flex:1">📷 Kamera</button><button onclick="document.getElementById('br_${k}').click()" style="background:#f59e0b;color:#fff;flex:1">🖼️ Browse</button></div><input type="file" id="cam_${k}" accept="image/*" capture="environment" style="display:none" onchange="handleFoto(this,'${k}')"><input type="file" id="br_${k}" accept="image/*" style="display:none" onchange="handleFoto(this,'${k}')"><img id="prev_${k}"><small id="info_${k}" style="color:#16a34a"></small><button onclick="hapusFoto('${k}')" id="del_${k}" style="background:#e2e8f0;width:100%;margin-top:6px;display:none">❌ Hapus</button></div>`).join('');
+
+// INI KUNCI AUTO KOMPRES 80KB
+function handleFoto(input,jenis){
+  let file=input.files[0]; if(!file) return;
+  document.getElementById('info_'+jenis).innerText='Mengompres...';
+  let reader=new FileReader();
+  reader.onload=e=>{
+    let img=new Image();
+    img.onload=()=>{
+      let canvas=document.createElement('canvas');
+      let max=400; // max lebar 400px
+      let scale=Math.min(1,max/img.width);
+      canvas.width=img.width*scale; canvas.height=img.height*scale;
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      let hasil=canvas.toDataURL('image/jpeg',0.2); // kualitas 0.2 = ~80KB
+      fotoData[jenis]=hasil;
+      let prev=document.getElementById('prev_'+jenis);
+      prev.src=hasil; prev.style.display='block';
+      document.getElementById('del_'+jenis).style.display='block';
+      let kb=Math.round(hasil.length*3/4/1024);
+      document.getElementById('info_'+jenis).innerText='✅ Terkompres jadi ~'+kb+' KB (dari ' + Math.round(file.size/1024) + ' KB)';
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function hapusFoto(j){fotoData[j]='';let p=document.getElementById('prev_'+j);p.src='';p.style.display='none';document.getElementById('del_'+j).style.display='none';document.getElementById('info_'+j).innerText='';}
+function tambahPerbaikan(){let d=document.createElement('div');d.className='perbaikanItem';d.innerHTML=`<input class="perbaikanNama" placeholder="Nama perbaikan" style="flex:2"><input type="number" class="perbaikanBiaya" placeholder="Biaya" oninput="hitung()" style="flex:1"><button onclick="this.parentElement.remove();hitung()" style="
